@@ -1,14 +1,20 @@
 package com.example.miaosha.service.impl;
 
+import com.alibaba.druid.util.StringUtils;
 import com.example.miaosha.dao.UserDtoMapper;
 import com.example.miaosha.dao.UserPasswordDtoMapper;
 import com.example.miaosha.dto.UserDto;
 import com.example.miaosha.dto.UserPasswordDto;
+import com.example.miaosha.error.BussinessException;
+import com.example.miaosha.error.EmBussinessError;
 import com.example.miaosha.service.UserService;
 import com.example.miaosha.service.model.UserModel;
+import com.example.miaosha.validation.Validatorer;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -18,8 +24,12 @@ public class UserServiceImpl implements UserService {
     @Autowired
     UserPasswordDtoMapper userPasswordDtoMapper;
 
+    @Autowired
+    Validatorer validatorer;
+
     @Override
     public UserModel getUserById(Integer id) {
+
         UserDto userDO = userDtoMapper.selectByPrimaryKey(id);
         if (userDO == null) {
             return null;
@@ -32,6 +42,66 @@ public class UserServiceImpl implements UserService {
 
     }
 
+    @Override
+    @Transactional//声明事务
+    public void register(UserModel userModel) throws BussinessException {
+                if (userModel == null) {
+            throw new BussinessException(EmBussinessError.PARAMETER_VALIDATION_ERROR);
+        }
+        if (validatorer.validate(userModel).isHasError()) {
+            throw new BussinessException(EmBussinessError.PARAMETER_VALIDATION_ERROR);
+        }
+
+        UserDto userDto = convertFromModel(userModel);
+
+        try {
+            userDtoMapper.insertSelective(userDto);
+        }catch (DuplicateKeyException ex){
+            throw new BussinessException(EmBussinessError.PARAMETER_VALIDATION_ERROR,"手机号已注册");
+        }
+
+        userModel.setId(userDto.getId());
+        UserPasswordDto userPasswordDO = convertPasswordFromModel(userModel);
+        userPasswordDtoMapper.insertSelective(userPasswordDO);
+
+    }
+
+    @Override
+    public UserModel login(String telephone, String password) throws BussinessException {
+        UserDto userDto=userDtoMapper.selectByTelphoneUserDto(telephone);
+
+        if(userDto==null){
+            throw new BussinessException(EmBussinessError.USER_LOOGIN_FAIL);
+        }
+        UserPasswordDto userPasswordDto=userPasswordDtoMapper.selectByUserId(userDto.getId());
+        UserModel userModel=convertFromDataObject(userDto,userPasswordDto);
+
+        if(!StringUtils.equals(userModel.getEncrptPassword(),password)){
+            throw new BussinessException(EmBussinessError.USER_LOOGIN_FAIL);
+        }
+
+        return userModel;
+    }
+
+    private UserPasswordDto convertPasswordFromModel(UserModel userModel) {
+        if (userModel == null) {
+            return null;
+        }
+        UserPasswordDto userPasswordDto = new UserPasswordDto();
+        userPasswordDto.setEncrptPassword(userModel.getEncrptPassword());
+        userPasswordDto.setUserId(userModel.getId());
+
+        return userPasswordDto;
+    }
+
+    private UserDto convertFromModel(UserModel userModel) {
+        if (userModel == null) {
+            return null;
+        }
+        UserDto userDto = new UserDto();
+        BeanUtils.copyProperties(userModel, userDto);
+        return userDto;
+    }
 
 
     private UserModel convertFromDataObject(UserDto userDO, UserPasswordDto userPasswordDO) {
