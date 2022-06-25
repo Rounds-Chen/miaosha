@@ -2,6 +2,7 @@ package com.example.miaosha.dao;
 
 import com.example.miaosha.dto.ItemDto;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
@@ -56,4 +57,9 @@ public interface ItemDtoMapper {
      * @mbg.generated Thu Jun 16 16:03:29 CST 2022
      */
     int updateByPrimaryKey(ItemDto record);
+
+    int increaseSales(@Param("id") Integer itemId, @Param("amount")Integer amount);
+
+
+
 }

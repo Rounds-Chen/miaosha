@@ -114,7 +114,7 @@ public class UserController extends BaseController{
         UserModel userModel=userService.login(telephone,this.EncodeByMd5(password));
 
         this.httpServletRequest.getSession().setAttribute("IS_LOGIN",true);
-        this.httpServletRequest.getSession().setAttribute("LOGIN_USER",userModel);
+        this.httpServletRequest.getSession().setAttribute("LOGIN_USER_ID",userModel.getId());
 
         return  CommonReturnType.create(null);
     }

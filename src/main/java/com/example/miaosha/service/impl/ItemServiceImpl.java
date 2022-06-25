@@ -13,6 +13,7 @@ import com.example.miaosha.validation.Validatorer;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -20,8 +21,6 @@ import java.util.stream.Collectors;
 
 @Service
 public class ItemServiceImpl implements ItemService {
-
-
     @Autowired
     Validatorer validatorer;
 
@@ -76,6 +75,19 @@ public class ItemServiceImpl implements ItemService {
         ItemModel itemModel=this.convertModelFromDataObject(itemDto,itemStockDto);
 
         return itemModel;
+    }
+
+    @Override
+    @Transactional
+    public boolean decreaseStock(Integer itemId, Integer amount) {
+        int stock=itemStockDtoMapper.decreaseStock(itemId,amount);
+        return stock>=0;
+    }
+
+    @Override
+    @Transactional
+    public void increaseSales(Integer itemId, Integer amount) {
+        itemDtoMapper.increaseSales(itemId,amount);
     }
 
     private ItemDto convertItemDtoFromItemModel(ItemModel itemModel) {
