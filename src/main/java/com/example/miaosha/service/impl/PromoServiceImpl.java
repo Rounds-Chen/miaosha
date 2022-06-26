@@ -7,7 +7,9 @@ import com.example.miaosha.service.model.PromoModel;
 import org.joda.time.DateTime;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
+@Service
 public class PromoServiceImpl implements PromoService {
 
     @Autowired
@@ -29,6 +31,12 @@ public class PromoServiceImpl implements PromoService {
         }
 
         return promoModel;
+    }
+
+    @Override
+    public PromoModel getPromoById(Integer promoId) {
+        PromoDto promoDto=promoDtoMapper.selectByPrimaryKey(promoId);
+        return convertFromDataObject(promoDto);
     }
 
     private PromoModel convertFromDataObject(PromoDto promoDO) {

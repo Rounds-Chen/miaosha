@@ -8,9 +8,11 @@ import com.example.miaosha.error.BussinessException;
 import com.example.miaosha.error.EmBussinessError;
 import com.example.miaosha.service.ItemService;
 import com.example.miaosha.service.OrderService;
+import com.example.miaosha.service.PromoService;
 import com.example.miaosha.service.UserService;
 import com.example.miaosha.service.model.ItemModel;
 import com.example.miaosha.service.model.OrderModel;
+import com.example.miaosha.service.model.PromoModel;
 import com.example.miaosha.service.model.UserModel;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,10 +38,13 @@ public class OrderServiceImpl implements OrderService {
     @Autowired
     OrderDtoMapper orderDtoMapper;
 
+    @Autowired
+    PromoService promoService;
+
 
     @Override
     @Transactional
-    public OrderModel create(Integer userId, Integer itemId, Integer amount) throws BussinessException {
+    public OrderModel create(Integer userId, Integer itemId, Integer amount,Integer promoId) throws BussinessException {
         // 1. 校验下单参数
         UserModel userModel=userService.getUserById(userId);
         if(userModel==null){
@@ -52,6 +57,11 @@ public class OrderServiceImpl implements OrderService {
         if(amount<=0||amount>99){
             throw new BussinessException(EmBussinessError.PARAMETER_VALIDATION_ERROR,"數量信息不存在");
         }
+        PromoModel promoModel=promoService.getPromoById(promoId);
+        if(promoModel==null){
+            throw new BussinessException(EmBussinessError.PARAMETER_VALIDATION_ERROR,"秒杀活动不存咋");
+        }
+
 
         // 2. 商品库存减（落单即减）
         boolean result=itemService.decreaseStock(itemId,amount);
@@ -62,11 +72,15 @@ public class OrderServiceImpl implements OrderService {
 
         // 3. 订单入库
         OrderModel orderModel=new OrderModel();
-        orderModel.setItemPrice(itemModel.getPrice());
+        if(promoModel!=null){
+            orderModel.setItemPrice(promoModel.getPromoPrice());
+        }else {
+            orderModel.setItemPrice(itemModel.getPrice());
+        }
         orderModel.setAmount(amount);
         orderModel.setItemId(itemId);
         orderModel.setUserId(userId);
-        orderModel.setOrderPrice(BigDecimal.valueOf(amount).multiply(itemModel.getPrice()));
+        orderModel.setOrderPrice(BigDecimal.valueOf(amount).multiply(orderModel.getItemPrice()));
         // 生成訂單交易號
         orderModel.setId(generateOrderNo());
 

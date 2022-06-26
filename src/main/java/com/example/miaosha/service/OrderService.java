@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service;
 @Service
 public interface OrderService {
 
-    OrderModel create(Integer userId, Integer itemId, Integer amount) throws BussinessException;
+    OrderModel create(Integer userId, Integer itemId, Integer amount,Integer promoId) throws BussinessException;
 }
 
 

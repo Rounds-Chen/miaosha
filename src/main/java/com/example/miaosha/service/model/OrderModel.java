@@ -69,4 +69,26 @@ public class OrderModel {
 
     //购买总金额
     private BigDecimal orderPrice;
+
+    // 秒杀活动id
+    private Integer promoId;
+
+    public Integer getPromoId() {
+        return promoId;
+    }
+
+    public void setPromoId(Integer promoId) {
+        this.promoId = promoId;
+    }
+
+    public BigDecimal getPromoPrice() {
+        return promoPrice;
+    }
+
+    public void setPromoPrice(BigDecimal promoPrice) {
+        this.promoPrice = promoPrice;
+    }
+
+    // 秒杀价格
+    private BigDecimal promoPrice;
 }
