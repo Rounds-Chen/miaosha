@@ -7,7 +7,9 @@ import com.example.miaosha.dto.ItemStockDto;
 import com.example.miaosha.error.BussinessException;
 import com.example.miaosha.error.EmBussinessError;
 import com.example.miaosha.service.ItemService;
+import com.example.miaosha.service.PromoService;
 import com.example.miaosha.service.model.ItemModel;
+import com.example.miaosha.service.model.PromoModel;
 import com.example.miaosha.validation.ValidationResult;
 import com.example.miaosha.validation.Validatorer;
 import org.springframework.beans.BeanUtils;
@@ -29,6 +31,9 @@ public class ItemServiceImpl implements ItemService {
 
     @Autowired
     ItemStockDtoMapper itemStockDtoMapper;
+
+    @Autowired
+    PromoService promoService;
 
     @Override
     public ItemModel createItem(ItemModel item) throws BussinessException {
@@ -73,6 +78,9 @@ public class ItemServiceImpl implements ItemService {
 
         }
         ItemModel itemModel=this.convertModelFromDataObject(itemDto,itemStockDto);
+
+        PromoModel promoModel=promoService.getPromoByItemId(itemModel.getId());
+        if(promoModel!=null&&promoModel.getStatus()!=3) itemModel.setPromoModel(promoModel);
 
         return itemModel;
     }

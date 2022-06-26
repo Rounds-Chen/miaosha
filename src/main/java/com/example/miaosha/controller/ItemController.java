@@ -5,6 +5,7 @@ import com.example.miaosha.error.BussinessException;
 import com.example.miaosha.response.CommonReturnType;
 import com.example.miaosha.service.ItemService;
 import com.example.miaosha.service.model.ItemModel;
+import com.example.miaosha.service.model.PromoModel;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -69,6 +70,15 @@ public class ItemController extends BaseController{
         ItemVO itemVO = new ItemVO();
         BeanUtils.copyProperties(itemModel, itemVO);
 
+        PromoModel promoModel=itemModel.getPromoModel();
+        if(promoModel!=null){
+            itemVO.setPromoId(promoModel.getId());
+            itemVO.setPromoPrice(promoModel.getPromoPrice());
+            itemVO.setPromoStatus(promoModel.getStatus());
+            itemVO.setStartTime(promoModel.getStartTime());
+        }else{
+            itemVO.setPromoStatus(0);
+        }
         return itemVO;
     }
 
