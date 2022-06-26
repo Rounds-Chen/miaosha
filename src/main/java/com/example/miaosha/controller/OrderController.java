@@ -29,14 +29,12 @@ public class OrderController {
     public CommonReturnType createOrder(@RequestParam("itemId") Integer itemId,
                                         @RequestParam("amount") Integer amount,
                                         @RequestParam("promoId") Integer promoId) throws BussinessException {
-        获取用户登录信息
+        // 获取用户登录信息
         Boolean isLogin = (Boolean) httpServletRequest.getSession().getAttribute("IS_LOGIN");
         if (isLogin == null || !isLogin.booleanValue()) {
             throw new BussinessException(EmBussinessError.USER_NOT_LOGIN, "用户还未登录，不能下单");
         }
         Integer userId = (Integer) httpServletRequest.getSession().getAttribute("LOGIN_USER_ID");
-            Integer userId=58;
-
         OrderModel orderModel = orderService.create(userId, itemId, amount,promoId);
 
         return CommonReturnType.create(orderModel);
