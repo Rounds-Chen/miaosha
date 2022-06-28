@@ -22,7 +22,6 @@ import java.util.Base64;
 
 @Controller
 @RequestMapping("/user")
-@CrossOrigin(origins = {"*"}, allowCredentials = "true")
 public class UserController extends BaseController{
 
     @Autowired
@@ -110,10 +109,14 @@ public class UserController extends BaseController{
             throw new BussinessException(EmBussinessError.PARAMETER_VALIDATION_ERROR);
         }
 
-        UserModel userModel=userService.login(telephone,this.EncodeByMd5(password));
+        try {
+            UserModel userModel = userService.login(telephone, this.EncodeByMd5(password));
 
-        this.httpServletRequest.getSession().setAttribute("IS_LOGIN",true);
-        this.httpServletRequest.getSession().setAttribute("LOGIN_USER_ID",userModel.getId());
+//            this.httpServletRequest.getSession().setAttribute("IS_LOGIN", true);
+//            this.httpServletRequest.getSession().setAttribute("LOGIN_USER_ID", userModel.getId());
+        }catch(Exception e){
+            System.out.println(e.toString() );
+        }
 
         return  CommonReturnType.create(null);
     }

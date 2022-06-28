@@ -17,7 +17,6 @@ import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/item")
-@CrossOrigin(origins = {"*"}, allowCredentials = "true")
 public class ItemController extends BaseController{
 
     @Autowired
@@ -78,6 +77,7 @@ public class ItemController extends BaseController{
             itemVO.setStartTime(promoModel.getStartTime());
         }else{
             itemVO.setPromoStatus(0);
+            itemVO.setPromoId(0);
         }
         return itemVO;
     }

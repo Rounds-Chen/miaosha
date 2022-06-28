@@ -78,8 +78,7 @@ public class ItemServiceImpl implements ItemService {
 
         }
         ItemModel itemModel=this.convertModelFromDataObject(itemDto,itemStockDto);
-
-        PromoModel promoModel=promoService.getPromoByItemId(itemModel.getId());
+        PromoModel promoModel = promoService.getPromoByItemId(itemModel.getId());
         if(promoModel!=null&&promoModel.getStatus()!=3) itemModel.setPromoModel(promoModel);
 
         return itemModel;

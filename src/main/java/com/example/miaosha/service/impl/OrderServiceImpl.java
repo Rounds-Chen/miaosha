@@ -58,9 +58,9 @@ public class OrderServiceImpl implements OrderService {
             throw new BussinessException(EmBussinessError.PARAMETER_VALIDATION_ERROR,"數量信息不存在");
         }
         PromoModel promoModel=promoService.getPromoById(promoId);
-        if(promoModel==null){
-            throw new BussinessException(EmBussinessError.PARAMETER_VALIDATION_ERROR,"秒杀活动不存咋");
-        }
+//        if(promoModel==null){
+//            throw new BussinessException(EmBussinessError.PARAMETER_VALIDATION_ERROR,"秒杀活动不存咋");
+//        }
 
 
         // 2. 商品库存减（落单即减）
