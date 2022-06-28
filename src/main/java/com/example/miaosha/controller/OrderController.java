@@ -5,18 +5,15 @@ import com.example.miaosha.error.EmBussinessError;
 import com.example.miaosha.response.CommonReturnType;
 import com.example.miaosha.service.OrderService;
 import com.example.miaosha.service.model.OrderModel;
-import com.example.miaosha.service.model.UserModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 
 @Controller
 @RequestMapping("/order")
+@CrossOrigin(origins = {"*"}, allowCredentials = "true")
 public class OrderController {
     @Autowired
     private HttpServletRequest httpServletRequest;

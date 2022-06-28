@@ -2,7 +2,6 @@ package com.example.miaosha.controller;
 
 import com.alibaba.druid.util.StringUtils;
 import com.example.miaosha.controller.viewobject.UserVO;
-import com.example.miaosha.dto.UserDto;
 import com.example.miaosha.error.BussinessException;
 import com.example.miaosha.error.EmBussinessError;
 import com.example.miaosha.response.CommonReturnType;
@@ -15,7 +14,6 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.UnsupportedEncodingException;
-import java.net.http.HttpRequest;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Random;
@@ -24,6 +22,7 @@ import java.util.Base64;
 
 @Controller
 @RequestMapping("/user")
+@CrossOrigin(origins = {"*"}, allowCredentials = "true")
 public class UserController extends BaseController{
 
     @Autowired

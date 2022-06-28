@@ -8,7 +8,6 @@ import com.example.miaosha.service.model.ItemModel;
 import com.example.miaosha.service.model.PromoModel;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,6 +17,7 @@ import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/item")
+@CrossOrigin(origins = {"*"}, allowCredentials = "true")
 public class ItemController extends BaseController{
 
     @Autowired
