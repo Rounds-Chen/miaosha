@@ -54,7 +54,7 @@ public class ItemController extends BaseController{
         return  CommonReturnType.create(list);
     }
 
-    @GetMapping("/item")
+    @GetMapping("/get")
     @ResponseBody
     public CommonReturnType getItem(@RequestParam("id") Integer id) throws BussinessException {
         ItemModel itemModel=itemService.getItem(id);
