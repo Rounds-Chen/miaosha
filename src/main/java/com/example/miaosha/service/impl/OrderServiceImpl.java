@@ -107,7 +107,8 @@ public class OrderServiceImpl implements OrderService {
         sequenceDto.setCurrentValue(sequenceDto.getCurrentValue()+sequenceDto.getStep());
         sequenceDtoMapper.updateByPrimaryKeySelective(sequenceDto);
 
-        sb.append("0".repeat(Math.max(0, 6 - curVal.length())));
+        for(int i=0;i<Math.max(0, 6 - curVal.length());i++)
+            sb.append("0");
         sb.append(curVal);
 
         // 最後兩位為分庫分表位 暫時00

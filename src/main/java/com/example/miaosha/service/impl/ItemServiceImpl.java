@@ -10,21 +10,17 @@ import com.example.miaosha.service.ItemService;
 import com.example.miaosha.service.PromoService;
 import com.example.miaosha.service.model.ItemModel;
 import com.example.miaosha.service.model.PromoModel;
-import com.example.miaosha.validation.ValidationResult;
-import com.example.miaosha.validation.Validatorer;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.LinkedList;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 public class ItemServiceImpl implements ItemService {
-    @Autowired
-    Validatorer validatorer;
 
     @Autowired
     ItemDtoMapper itemDtoMapper;
@@ -37,12 +33,7 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public ItemModel createItem(ItemModel item) throws BussinessException {
-        ValidationResult result=validatorer.validate(item);
-        if(result.isHasError()){
-            throw new BussinessException(EmBussinessError.PARAMETER_VALIDATION_ERROR,result.getErrMsgs());
-        }
-
-        ItemDto itemDto=this.convertItemDtoFromItemModel(item);
+       ItemDto itemDto=this.convertItemDtoFromItemModel(item);
         itemDtoMapper.insertSelective(itemDto);
 
         ItemStockDto itemStockDto=this.convertItemStockDtoFromItemModel(item);

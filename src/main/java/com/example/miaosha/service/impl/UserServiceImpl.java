@@ -9,7 +9,6 @@ import com.example.miaosha.error.BussinessException;
 import com.example.miaosha.error.EmBussinessError;
 import com.example.miaosha.service.UserService;
 import com.example.miaosha.service.model.UserModel;
-import com.example.miaosha.validation.Validatorer;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
@@ -23,9 +22,6 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     UserPasswordDtoMapper userPasswordDtoMapper;
-
-    @Autowired
-    Validatorer validatorer;
 
     @Override
     public UserModel getUserById(Integer id) {
@@ -48,10 +44,6 @@ public class UserServiceImpl implements UserService {
                 if (userModel == null) {
             throw new BussinessException(EmBussinessError.PARAMETER_VALIDATION_ERROR);
         }
-        if (validatorer.validate(userModel).isHasError()) {
-            throw new BussinessException(EmBussinessError.PARAMETER_VALIDATION_ERROR);
-        }
-
         UserDto userDto = convertFromModel(userModel);
 
         try {
