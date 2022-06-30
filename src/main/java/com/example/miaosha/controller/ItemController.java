@@ -7,16 +7,17 @@ import com.example.miaosha.service.ItemService;
 import com.example.miaosha.service.model.ItemModel;
 import com.example.miaosha.service.model.PromoModel;
 import com.example.miaosha.util.CacheConstant;
+import com.example.miaosha.util.CommonCacheUtil;
 import com.example.miaosha.util.RedisUtil;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
-import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Controller
@@ -28,6 +29,9 @@ public class ItemController extends BaseController{
 
     @Resource
     RedisUtil redisUtil;
+
+    @Resource
+    CommonCacheUtil cacheUtil;
 
 
     @PostMapping("/create")
@@ -65,10 +69,16 @@ public class ItemController extends BaseController{
     @ResponseBody
     public CommonReturnType getItem(@RequestParam("id") Integer id) throws BussinessException {
         String itemKey=CacheConstant.ITEM_CACHE_PREFIX+ id;
-        ItemModel itemModel=redisUtil.getCacheObject(itemKey);
+        ItemModel itemModel=null;
+
+        itemModel= (ItemModel) cacheUtil.getFromCommonCache(itemKey);
         if(itemModel==null){
-            itemModel=itemService.getItem(id);
-            redisUtil.setCacheObject(itemKey,itemModel);
+            itemModel=redisUtil.getCacheObject(itemKey);
+            if(itemModel==null){
+                itemModel=itemService.getItem(id);
+                redisUtil.setCacheObject(itemKey,itemModel,10, TimeUnit.MINUTES);
+            }
+            cacheUtil.setCommonCache(itemKey,itemModel);
         }
 
         ItemVO itemVO=this.convertVOFromModel(itemModel);
