@@ -60,12 +60,8 @@ public class UserController extends BaseController {
         randomInt += 10000;
         String otpCode = String.valueOf(randomInt);
 
-        //将OTP验证码同对应用户的手机号关联，使用httpsession的方式绑定手机号与OTPCDOE
-        httpServletRequest.getSession().setAttribute(telephone, otpCode);
-
         //将OTP验证码通过短信通道发送给用户，省略
         System.out.println("telphone=" + telephone + "&otpCode=" + otpCode);
-
         return CommonReturnType.create(null);
     }
 

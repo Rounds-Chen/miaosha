@@ -6,11 +6,15 @@ import com.example.miaosha.response.CommonReturnType;
 import com.example.miaosha.service.ItemService;
 import com.example.miaosha.service.model.ItemModel;
 import com.example.miaosha.service.model.PromoModel;
+import com.example.miaosha.util.CacheConstant;
+import com.example.miaosha.util.RedisUtil;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
+import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.*;
 
+import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -21,6 +25,10 @@ public class ItemController extends BaseController{
 
     @Autowired
     ItemService itemService;
+
+    @Resource
+    RedisUtil redisUtil;
+
 
     @PostMapping("/create")
     @ResponseBody
@@ -56,7 +64,13 @@ public class ItemController extends BaseController{
     @GetMapping("/get")
     @ResponseBody
     public CommonReturnType getItem(@RequestParam("id") Integer id) throws BussinessException {
-        ItemModel itemModel=itemService.getItem(id);
+        String itemKey=CacheConstant.ITEM_CACHE_PREFIX+ id;
+        ItemModel itemModel=redisUtil.getCacheObject(itemKey);
+        if(itemModel==null){
+            itemModel=itemService.getItem(id);
+            redisUtil.setCacheObject(itemKey,itemModel);
+        }
+
         ItemVO itemVO=this.convertVOFromModel(itemModel);
 
         return CommonReturnType.create(itemVO);
