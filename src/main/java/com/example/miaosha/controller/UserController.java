@@ -5,6 +5,7 @@ import com.example.miaosha.controller.viewobject.UserVO;
 import com.example.miaosha.error.BussinessException;
 import com.example.miaosha.error.EmBussinessError;
 import com.example.miaosha.response.CommonReturnType;
+import com.example.miaosha.service.JwtService;
 import com.example.miaosha.service.UserService;
 import com.example.miaosha.service.model.UserModel;
 import org.springframework.beans.BeanUtils;
@@ -12,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
+import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
@@ -22,18 +24,20 @@ import java.util.Base64;
 
 @Controller
 @RequestMapping("/user")
-public class UserController extends BaseController{
+public class UserController extends BaseController {
 
     @Autowired
     UserService userService;
 
+    @Resource
+    JwtService jwtService;
 
     @Autowired
     HttpServletRequest httpServletRequest;
 
     @RequestMapping("/get")
     @ResponseBody
-    public UserVO getUser(@RequestParam("id") Integer id){
+    public UserVO getUser(@RequestParam("id") Integer id) {
         UserModel userModel = userService.getUserById(id);
 
         if (userModel == null) {
@@ -45,11 +49,11 @@ public class UserController extends BaseController{
     }
 
     /*
-    * 生成验证码
+     * 生成验证码
      */
     @PostMapping("/getOtp")
     @ResponseBody
-    public CommonReturnType getOtp(@RequestParam("telephone") String telephone){
+    public CommonReturnType getOtp(@RequestParam("telephone") String telephone) {
         //需要按照一定的规则生成OTP验证码
         Random random = new Random();
         int randomInt = random.nextInt(99999);
@@ -66,7 +70,7 @@ public class UserController extends BaseController{
     }
 
     /*
-   * 用户注册
+     * 用户注册
      */
     @PostMapping("/register")
     @ResponseBody
@@ -95,39 +99,34 @@ public class UserController extends BaseController{
 
         userService.register(userModel);
         return CommonReturnType.create(null);
-
     }
 
     /*
-    * 用户登录
+     * 用户登录
      */
     @PostMapping("/login")
     @ResponseBody
-    public CommonReturnType login(@RequestParam("telephone") String telephone,@RequestParam("password") String password) throws BussinessException, UnsupportedEncodingException, NoSuchAlgorithmException {
+    public CommonReturnType login(@RequestParam("telephone") String telephone, @RequestParam("password") String password) throws BussinessException, UnsupportedEncodingException, NoSuchAlgorithmException {
         //入参校验
         if (StringUtils.isEmpty(telephone) || StringUtils.isEmpty(password)) {
             throw new BussinessException(EmBussinessError.PARAMETER_VALIDATION_ERROR);
         }
 
-        try {
-            UserModel userModel = userService.login(telephone, this.EncodeByMd5(password));
+        UserModel userModel = userService.login(telephone, this.EncodeByMd5(password));
+        Integer userId=userModel.getId();
+        String token=jwtService.generateToken(String.valueOf(userId));
+        token="bearer;"+token;
 
-//            this.httpServletRequest.getSession().setAttribute("IS_LOGIN", true);
-//            this.httpServletRequest.getSession().setAttribute("LOGIN_USER_ID", userModel.getId());
-        }catch(Exception e){
-            System.out.println(e.toString() );
-        }
-
-        return  CommonReturnType.create(null);
+        return CommonReturnType.create(token);
     }
 
     private String EncodeByMd5(String str) throws NoSuchAlgorithmException, UnsupportedEncodingException {
         //确定计算方法
         MessageDigest md5 = MessageDigest.getInstance("MD5");
-        Base64.Encoder base64en = Base64.getEncoder() ;
+        Base64.Encoder base64en = Base64.getEncoder();
         //加密字符串
         byte[] newstr = base64en.encode(md5.digest(str.getBytes("utf-8")));
-        return new String(newstr,"utf-8");
+        return new String(newstr, "utf-8");
     }
 
 
