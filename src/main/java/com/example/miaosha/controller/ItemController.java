@@ -4,6 +4,7 @@ import com.example.miaosha.controller.viewobject.ItemVO;
 import com.example.miaosha.error.BussinessException;
 import com.example.miaosha.response.CommonReturnType;
 import com.example.miaosha.service.ItemService;
+import com.example.miaosha.service.PromoService;
 import com.example.miaosha.service.model.ItemModel;
 import com.example.miaosha.service.model.PromoModel;
 import com.example.miaosha.util.CacheConstant;
@@ -32,6 +33,9 @@ public class ItemController extends BaseController{
 
     @Resource
     CommonCacheUtil cacheUtil;
+
+    @Autowired
+    PromoService promoService;
 
 
     @PostMapping("/create")
@@ -84,6 +88,13 @@ public class ItemController extends BaseController{
         ItemVO itemVO=this.convertVOFromModel(itemModel);
 
         return CommonReturnType.create(itemVO);
+    }
+
+    @PostMapping("/publishPromo")
+    @ResponseBody
+    public CommonReturnType publishPromo(@RequestParam("promoId") Integer id){
+        promoService.publishPromoById(id);
+        return CommonReturnType.create(null);
     }
 
     private ItemVO convertVOFromModel(ItemModel itemModel) {

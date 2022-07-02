@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 public interface UserService {
     UserModel getUserById(Integer id);
 
+    UserModel getUserInCacheById(Integer id);
+
     void register(UserModel userModel) throws BussinessException;
 
     UserModel login(String telephone,String password) throws BussinessException;

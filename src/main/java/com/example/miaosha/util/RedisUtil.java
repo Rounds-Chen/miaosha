@@ -26,4 +26,10 @@ public class RedisUtil {
         return operation.get(key);
     }
 
+    // 增、减key的缓存
+    public long incrementCacheObject(String key,int amout){
+        long res=redisTemplate.opsForValue().increment(key,amout);
+        return res;
+    }
+
 }

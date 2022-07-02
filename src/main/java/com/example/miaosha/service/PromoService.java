@@ -8,4 +8,6 @@ public interface PromoService {
     PromoModel getPromoByItemId(Integer itemId);
 
     PromoModel getPromoById(Integer promoId);
+
+    void publishPromoById(Integer promoId);
 }

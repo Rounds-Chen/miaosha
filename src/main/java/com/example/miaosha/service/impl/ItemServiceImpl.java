@@ -10,13 +10,17 @@ import com.example.miaosha.service.ItemService;
 import com.example.miaosha.service.PromoService;
 import com.example.miaosha.service.model.ItemModel;
 import com.example.miaosha.service.model.PromoModel;
+import com.example.miaosha.util.CacheConstant;
+import com.example.miaosha.util.RedisUtil;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 
+import javax.annotation.Resource;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Service
@@ -30,6 +34,9 @@ public class ItemServiceImpl implements ItemService {
 
     @Autowired
     PromoService promoService;
+
+    @Resource
+    RedisUtil redisUtil;
 
     @Override
     public ItemModel createItem(ItemModel item) throws BussinessException {
@@ -76,9 +83,27 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
+    public ItemModel getItemInCache(Integer id) throws BussinessException {
+        String itemKey= CacheConstant.ORDER_ITEM_CACHE_PREFIX+id;
+        ItemModel itemModel=redisUtil.getCacheObject(itemKey);
+        if(itemModel==null){
+            itemModel=this.getItem(id);
+            redisUtil.setCacheObject(itemKey,itemModel,10, TimeUnit.MINUTES);
+        }
+        return itemModel;
+    }
+
+    @Override
     @Transactional
     public boolean decreaseStock(Integer itemId, Integer amount) {
         int stock=itemStockDtoMapper.decreaseStock(itemId,amount);
+        return stock>=0;
+    }
+
+    @Override
+    public boolean decreaseStockInCache(Integer itemId, Integer amout) {
+        String stockKey=CacheConstant.ITEM_STOCK_CACHE_PREFIX+itemId;
+        long stock=redisUtil.incrementCacheObject(stockKey,-1*amout);
         return stock>=0;
     }
 

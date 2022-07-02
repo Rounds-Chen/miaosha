@@ -6,6 +6,7 @@ import com.example.miaosha.dto.OrderDto;
 import com.example.miaosha.dto.SequenceDto;
 import com.example.miaosha.error.BussinessException;
 import com.example.miaosha.error.EmBussinessError;
+import com.example.miaosha.mq.producer.ItemStockProducer;
 import com.example.miaosha.service.ItemService;
 import com.example.miaosha.service.OrderService;
 import com.example.miaosha.service.PromoService;
@@ -20,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -41,42 +43,51 @@ public class OrderServiceImpl implements OrderService {
     @Autowired
     PromoService promoService;
 
+    @Resource
+    ItemStockProducer itemStockProducer;
+
 
     @Override
     @Transactional
-    public OrderModel create(Integer userId, Integer itemId, Integer amount,Integer promoId) throws BussinessException {
+    public OrderModel create(Integer userId, Integer itemId, Integer amount, Integer promoId) throws BussinessException {
         // 1. 校验下单参数
-        UserModel userModel=userService.getUserById(userId);
-        if(userModel==null){
-            throw new BussinessException(EmBussinessError.PARAMETER_VALIDATION_ERROR,"用户不存在");
+        // a. 用户商品信息校验
+        UserModel userModel = userService.getUserInCacheById(userId);
+        if (userModel == null) {
+            throw new BussinessException(EmBussinessError.PARAMETER_VALIDATION_ERROR, "用户不存在");
         }
-        ItemModel itemModel=itemService.getItem(itemId);
-        if(itemModel==null){
-            throw new BussinessException(EmBussinessError.PARAMETER_VALIDATION_ERROR,"商品不存在");
+        ItemModel itemModel = itemService.getItemInCache(itemId);
+        if (itemModel == null) {
+            throw new BussinessException(EmBussinessError.PARAMETER_VALIDATION_ERROR, "商品不存在");
         }
-        if(amount<=0||amount>99){
-            throw new BussinessException(EmBussinessError.PARAMETER_VALIDATION_ERROR,"數量信息不存在");
+        if (amount <= 0 || amount > 99) {
+            throw new BussinessException(EmBussinessError.PARAMETER_VALIDATION_ERROR, "數量信息不存在");
         }
-        PromoModel promoModel=promoService.getPromoById(promoId);
-//        if(promoModel==null){
-//            throw new BussinessException(EmBussinessError.PARAMETER_VALIDATION_ERROR,"秒杀活动不存咋");
-//        }
-
+        // b.活动信息校验
+        PromoModel promoModel=itemModel.getPromoModel();
+        if(promoModel==null||promoId!=promoModel.getId()){
+            throw new BussinessException(EmBussinessError.PARAMETER_VALIDATION_ERROR,"活动不存在");
+        }else if(promoModel.getStatus()!=2){
+            throw new BussinessException(EmBussinessError.PARAMETER_VALIDATION_ERROR,"活动未开始");
+        }
 
         // 2. 商品库存减（落单即减）
-        boolean result=itemService.decreaseStock(itemId,amount);
-        if(!result){
-            throw new BussinessException(EmBussinessError.PARAMETER_VALIDATION_ERROR,"商品庫存不足");
+        // a. redis缓存中减库存
+        boolean result = itemService.decreaseStockInCache(itemId, amount);
+        if (!result) {
+            // redis缓存恢复
+            itemService.decreaseStockInCache(itemId,-1*amount);
+            throw new BussinessException(EmBussinessError.PARAMETER_VALIDATION_ERROR, "商品庫存不足");
+        }
+        // b. 放入异步消息队列
+        if(!itemStockProducer.syncSend(itemId,amount)){
+            itemService.decreaseStockInCache(itemId,-1*amount);
         }
 
 
         // 3. 订单入库
-        OrderModel orderModel=new OrderModel();
-        if(promoModel!=null){
-            orderModel.setItemPrice(promoModel.getPromoPrice());
-        }else {
-            orderModel.setItemPrice(itemModel.getPrice());
-        }
+        OrderModel orderModel = new OrderModel();
+        orderModel.setItemPrice(promoModel.getPromoPrice());
         orderModel.setAmount(amount);
         orderModel.setItemId(itemId);
         orderModel.setUserId(userId);
@@ -87,27 +98,27 @@ public class OrderServiceImpl implements OrderService {
         orderDtoMapper.insertSelective(this.convertFromOrderModel(orderModel));
 
         // 4. 商品销量增加
-        itemService.increaseSales(itemId,amount);
+        itemService.increaseSales(itemId, amount);
         return orderModel;
     }
 
     // 獲取訂單號
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    String generateOrderNo(){
+    String generateOrderNo() {
         // 訂單號有16位
-        StringBuilder sb=new StringBuilder();
+        StringBuilder sb = new StringBuilder();
         // 前8位為日期
-        LocalDateTime now= LocalDateTime.now();
-        String nowTime=now.format(DateTimeFormatter.ISO_DATE).replace("-","");
+        LocalDateTime now = LocalDateTime.now();
+        String nowTime = now.format(DateTimeFormatter.ISO_DATE).replace("-", "");
         sb.append(nowTime);
 
         // 中間6位為自增序列
-        SequenceDto sequenceDto=sequenceDtoMapper.selectByPrimaryKey("order_info");
-        String curVal=String.valueOf(sequenceDto.getCurrentValue());
-        sequenceDto.setCurrentValue(sequenceDto.getCurrentValue()+sequenceDto.getStep());
+        SequenceDto sequenceDto = sequenceDtoMapper.selectByPrimaryKey("order_info");
+        String curVal = String.valueOf(sequenceDto.getCurrentValue());
+        sequenceDto.setCurrentValue(sequenceDto.getCurrentValue() + sequenceDto.getStep());
         sequenceDtoMapper.updateByPrimaryKeySelective(sequenceDto);
 
-        for(int i=0;i<Math.max(0, 6 - curVal.length());i++)
+        for (int i = 0; i < Math.max(0, 6 - curVal.length()); i++)
             sb.append("0");
         sb.append(curVal);
 

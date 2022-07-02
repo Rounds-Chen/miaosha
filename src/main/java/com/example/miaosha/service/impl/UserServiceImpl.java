@@ -9,11 +9,17 @@ import com.example.miaosha.error.BussinessException;
 import com.example.miaosha.error.EmBussinessError;
 import com.example.miaosha.service.UserService;
 import com.example.miaosha.service.model.UserModel;
+import com.example.miaosha.util.CacheConstant;
+import com.example.miaosha.util.RedisUtil;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import javax.annotation.Resource;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -22,6 +28,9 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     UserPasswordDtoMapper userPasswordDtoMapper;
+
+    @Resource
+    RedisUtil redisUtil;
 
     @Override
     public UserModel getUserById(Integer id) {
@@ -36,6 +45,17 @@ public class UserServiceImpl implements UserService {
 
         return convertFromDataObject(userDO, userPasswordDO);
 
+    }
+
+    @Override
+    public UserModel getUserInCacheById(Integer id) {
+        String userKey= CacheConstant.USER_CACHE_PREFIX+id;
+        UserModel userModel=redisUtil.getCacheObject(userKey);
+        if(userModel==null){
+            userModel=this.getUserById(id);
+            redisUtil.setCacheObject(userKey,userModel,10, TimeUnit.MINUTES);
+        }
+        return userModel;
     }
 
     @Override
