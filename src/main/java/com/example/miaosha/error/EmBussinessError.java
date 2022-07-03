@@ -11,7 +11,7 @@ public enum EmBussinessError implements CommonError{
     USER_NOT_LOGIN(20003, "用户还未登陆"),
 
     //30000开头为交易信息错误定义
-    STOCK_NOT_ENOUGH(30001, "库存不足")
+    STOCK_NOT_ENOUGH(30001, "库存不足"),
     ;
 
     private EmBussinessError(int errCode, String errMsg) {

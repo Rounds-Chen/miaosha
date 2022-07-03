@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service;
 public interface OrderService {
 
     OrderModel create(Integer userId, Integer itemId, Integer amount,Integer promoId) throws BussinessException;
+
+    OrderModel createByTransication(Integer userId,Integer itemId,Integer amout,Integer promoId) throws BussinessException;
 }
 
 

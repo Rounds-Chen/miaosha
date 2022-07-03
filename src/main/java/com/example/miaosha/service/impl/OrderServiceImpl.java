@@ -1,8 +1,10 @@
 package com.example.miaosha.service.impl;
 
 import com.example.miaosha.dao.OrderDtoMapper;
+import com.example.miaosha.dao.OrderLogDtoMapper;
 import com.example.miaosha.dao.SequenceDtoMapper;
 import com.example.miaosha.dto.OrderDto;
+import com.example.miaosha.dto.OrderLogDto;
 import com.example.miaosha.dto.SequenceDto;
 import com.example.miaosha.error.BussinessException;
 import com.example.miaosha.error.EmBussinessError;
@@ -25,6 +27,7 @@ import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.UUID;
 
 @Service
 public class OrderServiceImpl implements OrderService {
@@ -46,6 +49,9 @@ public class OrderServiceImpl implements OrderService {
     @Resource
     ItemStockProducer itemStockProducer;
 
+    @Autowired
+    OrderLogDtoMapper orderLogDtoMapper;
+
 
     @Override
     @Transactional
@@ -64,11 +70,11 @@ public class OrderServiceImpl implements OrderService {
             throw new BussinessException(EmBussinessError.PARAMETER_VALIDATION_ERROR, "數量信息不存在");
         }
         // b.活动信息校验
-        PromoModel promoModel=itemModel.getPromoModel();
-        if(promoModel==null||promoId!=promoModel.getId()){
-            throw new BussinessException(EmBussinessError.PARAMETER_VALIDATION_ERROR,"活动不存在");
-        }else if(promoModel.getStatus()!=2){
-            throw new BussinessException(EmBussinessError.PARAMETER_VALIDATION_ERROR,"活动未开始");
+        PromoModel promoModel = itemModel.getPromoModel();
+        if (promoModel == null || promoId != promoModel.getId()) {
+            throw new BussinessException(EmBussinessError.PARAMETER_VALIDATION_ERROR, "活动不存在");
+        } else if (promoModel.getStatus() != 2) {
+            throw new BussinessException(EmBussinessError.PARAMETER_VALIDATION_ERROR, "活动未开始");
         }
 
         // 2. 商品库存减（落单即减）
@@ -76,14 +82,13 @@ public class OrderServiceImpl implements OrderService {
         boolean result = itemService.decreaseStockInCache(itemId, amount);
         if (!result) {
             // redis缓存恢复
-            itemService.decreaseStockInCache(itemId,-1*amount);
+            itemService.decreaseStockInCache(itemId, -1 * amount);
             throw new BussinessException(EmBussinessError.PARAMETER_VALIDATION_ERROR, "商品庫存不足");
         }
-        // b. 放入异步消息队列
-        if(!itemStockProducer.syncSend(itemId,amount)){
-            itemService.decreaseStockInCache(itemId,-1*amount);
-        }
-
+//        // b. 放入异步消息队列
+//        if (!itemStockProducer.syncSend(itemId, amount)) {
+//            itemService.decreaseStockInCache(itemId, -1 * amount);
+//        }
 
         // 3. 订单入库
         OrderModel orderModel = new OrderModel();
@@ -100,6 +105,35 @@ public class OrderServiceImpl implements OrderService {
         // 4. 商品销量增加
         itemService.increaseSales(itemId, amount);
         return orderModel;
+    }
+
+    @Override
+    @Transactional
+    public OrderModel createByTransication(Integer userId, Integer itemId, Integer amout, Integer promoId) throws BussinessException {
+        // 创建订单
+        OrderModel orderModel=this.create(userId,itemId,amout,promoId);
+
+        // 记录本地创建订单记录
+        String logId=saveLocalOrderMsg(itemId,amout);
+
+        // 发送消息到mq
+        if(!itemStockProducer.syncSend(logId,itemId,amout)){
+            itemService.decreaseStockInCache(itemId, -1 * amout);
+        };
+
+        return orderModel;
+    }
+
+    // 记录订单创建消息到本地 此时log的status默认0--未被确认收到
+    private String saveLocalOrderMsg(Integer itemId,Integer amount){
+        String logId= UUID.randomUUID().toString().replace("-","");
+        OrderLogDto orderLogDto=new OrderLogDto();
+        orderLogDto.setOrderLogId(logId);
+        orderLogDto.setItemId(itemId);
+        orderLogDto.setAmount(amount);
+
+        orderLogDtoMapper.insertSelective(orderLogDto);
+        return logId;
     }
 
     // 獲取訂單號
