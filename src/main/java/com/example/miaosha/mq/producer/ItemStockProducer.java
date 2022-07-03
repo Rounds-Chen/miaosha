@@ -24,8 +24,8 @@ public class ItemStockProducer {
 
     @PostConstruct
     public void setup(){
-        //消息发送完成后，则回调此方法，ack代表此方法是否发送成功
-        // TODO 设置定时轮询 重发超过一段时间还未ack的消息
+        // 消息发送完成后，则回调此方法，ack代表此方法是否发送成功
+        // 设置定时轮询 重发超过一段时间还未ack的消息
         rabbitTemplate.setConfirmCallback(new RabbitTemplate.ConfirmCallback(){
             @Override
             public void confirm(CorrelationData correlationData, boolean ack, String cause) {
@@ -43,6 +43,7 @@ public class ItemStockProducer {
         ItemStockMessage message=new ItemStockMessage();
         message.setItemId(itemId);
         message.setAmount(amount);
+        message.setMsgId(logId);
         try {
             rabbitTemplate.convertAndSend(MqConstant.ORDER_EXCHANGE, MqConstant.ITEM_STOCK_ROUTE_KEY, JSON.toJSONString(message),new CorrelationData(logId));
             System.out.println("发送：item:"+itemId+" stockDec:"+amount);

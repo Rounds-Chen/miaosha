@@ -5,6 +5,16 @@ public class ItemStockMessage  {
     private Integer itemId;
     private Integer amount;
 
+    public String getMsgId() {
+        return msgId;
+    }
+
+    public void setMsgId(String msgId) {
+        this.msgId = msgId;
+    }
+
+    private String msgId;
+
     public Integer getItemId() {
         return itemId;
     }

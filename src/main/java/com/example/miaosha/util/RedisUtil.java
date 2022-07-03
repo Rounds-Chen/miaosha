@@ -2,6 +2,7 @@ package com.example.miaosha.util;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.SetOperations;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
@@ -30,6 +31,18 @@ public class RedisUtil {
     public long incrementCacheObject(String key,int amout){
         long res=redisTemplate.opsForValue().increment(key,amout);
         return res;
+    }
+
+    // 判断obj是否是key对应set的成员
+    public <T> boolean inCacheSet(String key,T obj){
+        SetOperations operation=redisTemplate.opsForSet();
+        return operation.isMember(key,obj);
+    }
+
+    // 将obj添加到key对应set中
+    public <T> void addInCacheSet(String key,T obj){
+        SetOperations operation=redisTemplate.opsForSet();
+        operation.add(key,obj);
     }
 
 }

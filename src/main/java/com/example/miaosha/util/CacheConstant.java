@@ -13,4 +13,7 @@ public interface CacheConstant {
     // 商品库存信息缓存前缀
     String ITEM_STOCK_CACHE_PREFIX="ITEM_STOCK_";
 
+    // 已消费库存消息set key
+    String CONSUMED_STOCK_DECREASE_MSG="CONSUMED_STOCK_DECREASE_MSG";
+
 }
