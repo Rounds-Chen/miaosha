@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.util.concurrent.ExecutionException;
 
 @Controller
 @RequestMapping("/order")
@@ -49,7 +50,7 @@ public class OrderController {
     public CommonReturnType createOrder(@RequestParam("itemId") Integer itemId,
                                         @RequestParam("amount") Integer amount,
                                         @RequestParam("promoId") Integer promoId,
-                                        @RequestParam("promoToken") String promoToken) throws BussinessException {
+                                        @RequestParam("promoToken") String promoToken) throws BussinessException, ExecutionException, InterruptedException {
         Integer userId= Integer.parseInt((String)(httpServletRequest.getAttribute("userId")));
 
         String tokenKey=CacheConstant.PROMO_TOKEN_PREFIX+"promoId_"+promoId+"_userId_"+userId+"_itemId_"+itemId;

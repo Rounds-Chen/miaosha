@@ -15,19 +15,20 @@ import com.example.miaosha.service.PromoService;
 import com.example.miaosha.service.UserService;
 import com.example.miaosha.service.model.ItemModel;
 import com.example.miaosha.service.model.OrderModel;
-import com.example.miaosha.service.model.PromoModel;
-import com.example.miaosha.service.model.UserModel;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
+import java.util.concurrent.*;
 
 @Service
 public class OrderServiceImpl implements OrderService {
@@ -52,6 +53,29 @@ public class OrderServiceImpl implements OrderService {
     @Autowired
     OrderLogDtoMapper orderLogDtoMapper;
 
+    private ThreadPoolExecutor executor;
+
+    @Value("${core.pool.size}")
+    private int corePoolSize;
+    @Value("${max.pool.size}")
+    private int maxPoolSize;
+    @Value("${queue.capacity}")
+    private int queueCap;
+    @Value("${keep.alive.time}")
+    private long aliveTime;
+
+    @PostConstruct
+    void init() {
+        executor = new ThreadPoolExecutor(
+                corePoolSize,
+                maxPoolSize,
+                aliveTime,
+                TimeUnit.SECONDS,
+                new ArrayBlockingQueue<>(queueCap),
+                new ThreadPoolExecutor.CallerRunsPolicy()
+        );
+    }
+
 
     @Override
     @Transactional
@@ -70,7 +94,7 @@ public class OrderServiceImpl implements OrderService {
         }
 
         // 订单入库
-        ItemModel itemModel=itemService.getItemInCache(itemId);
+        ItemModel itemModel = itemService.getItemInCache(itemId);
         OrderModel orderModel = new OrderModel();
         orderModel.setItemPrice(itemModel.getPromoModel().getPromoPrice());
         orderModel.setAmount(amount);
@@ -90,25 +114,37 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public OrderModel createByTransication(Integer userId, Integer itemId, Integer amout, Integer promoId) throws BussinessException {
+    @Transactional
+    public OrderModel createByTransication(Integer userId, Integer itemId, Integer amout, Integer promoId) throws BussinessException, ExecutionException, InterruptedException {
         // 创建订单
-        OrderModel orderModel=this.create(userId,itemId,amout,promoId);
+        OrderModel orderModel = this.create(userId, itemId, amout, promoId);
 
-        // 记录本地创建订单记录
-        String logId=saveLocalOrderMsg(itemId,amout);
+        //拥塞窗口为20的等待队列，用来队列化泄洪
+        Future future=executor.submit(new Runnable() {
+            @Override
+            public void run() {
+                // 记录本地创建订单记录
+                String logId = saveLocalOrderMsg(itemId, amout);
 
-        // 发送消息到mq
-        if(!itemStockProducer.syncSend(logId,itemId,amout)){
-            itemService.decreaseStockInCache(itemId, -1 * amout);
-        };
+                // 发送消息到mq
+                if (!itemStockProducer.syncSend(logId, itemId, amout)) {
+                    itemService.decreaseStockInCache(itemId, -1 * amout);
+                }
+            }
+        });
+        try {
+            future.get();
+        }catch (Exception e){
+            throw new BussinessException(EmBussinessError.UNKNOWN_ERROR,"线程池执行出错");
+        }
 
         return orderModel;
     }
 
     // 记录订单创建消息到本地 此时log的status默认0--未被确认收到
-    private String saveLocalOrderMsg(Integer itemId,Integer amount){
-        String logId= UUID.randomUUID().toString().replace("-","");
-        OrderLogDto orderLogDto=new OrderLogDto();
+    private String saveLocalOrderMsg(Integer itemId, Integer amount) {
+        String logId = UUID.randomUUID().toString().replace("-", "");
+        OrderLogDto orderLogDto = new OrderLogDto();
         orderLogDto.setOrderLogId(logId);
         orderLogDto.setItemId(itemId);
         orderLogDto.setAmount(amount);
