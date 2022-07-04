@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -88,7 +89,7 @@ public class ItemServiceImpl implements ItemService {
         ItemModel itemModel=redisUtil.getCacheObject(itemKey);
         if(itemModel==null){
             itemModel=this.getItem(id);
-            redisUtil.setCacheObject(itemKey,itemModel,10, TimeUnit.MINUTES);
+            redisUtil.setCacheObjectExpire(itemKey,itemModel,10, TimeUnit.MINUTES);
         }
         return itemModel;
     }
@@ -103,8 +104,36 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public boolean decreaseStockInCache(Integer itemId, Integer amout) {
         String stockKey=CacheConstant.ITEM_STOCK_CACHE_PREFIX+itemId;
-        long stock=redisUtil.incrementCacheObject(stockKey,-1*amout);
-        return stock>=0;
+        while(true){
+            redisUtil.watchKey(stockKey);
+            try{
+                int stock=Integer.parseInt(redisUtil.getCacheObject(stockKey));
+                if(stock<amout){
+                    return false;
+                }
+
+                redisUtil.startMulti();
+                redisUtil.setCacheObject(stockKey,stock-amout);
+                List<Object> results = redisUtil.execMulti();
+
+                if(results==null||results.size()==0){
+                    waitForLock();
+                }else{
+                    return true;
+                }
+            }finally {
+                redisUtil.unwatchKey();
+            }
+        }
+
+    }
+
+    private void waitForLock() {
+        try {
+            Thread.sleep(new Random().nextInt(10) + 1);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override

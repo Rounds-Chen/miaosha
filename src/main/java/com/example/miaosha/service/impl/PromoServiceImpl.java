@@ -14,7 +14,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
-import java.math.BigDecimal;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -61,7 +60,7 @@ public class PromoServiceImpl implements PromoService {
         ItemStockDto itemStockDto=itemStockDtoMapper.selectByItemId(promoModel.getItemId());
         String stockKey= CacheConstant.ITEM_STOCK_CACHE_PREFIX+itemStockDto.getItemId();
 
-        redisUtil.setCacheObject(stockKey, itemStockDto.getStock(),10, TimeUnit.MINUTES);
+        redisUtil.setCacheObjectExpire(stockKey, itemStockDto.getStock(),10, TimeUnit.MINUTES);
     }
 
     private PromoModel convertFromDataObject(PromoDto promoDO) {

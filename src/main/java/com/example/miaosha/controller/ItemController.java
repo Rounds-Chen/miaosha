@@ -80,7 +80,7 @@ public class ItemController extends BaseController{
             itemModel=redisUtil.getCacheObject(itemKey);
             if(itemModel==null){
                 itemModel=itemService.getItem(id);
-                redisUtil.setCacheObject(itemKey,itemModel,10, TimeUnit.MINUTES);
+                redisUtil.setCacheObjectExpire(itemKey,itemModel,10, TimeUnit.MINUTES);
             }
             cacheUtil.setCommonCache(itemKey,itemModel);
         }

@@ -14,7 +14,6 @@ import com.example.miaosha.util.RedisUtil;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -53,7 +52,7 @@ public class UserServiceImpl implements UserService {
         UserModel userModel=redisUtil.getCacheObject(userKey);
         if(userModel==null){
             userModel=this.getUserById(id);
-            redisUtil.setCacheObject(userKey,userModel,10, TimeUnit.MINUTES);
+            redisUtil.setCacheObjectExpire(userKey,userModel,10, TimeUnit.MINUTES);
         }
         return userModel;
     }

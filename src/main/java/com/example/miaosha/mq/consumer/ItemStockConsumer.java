@@ -31,6 +31,7 @@ public class ItemStockConsumer {
     public void asyncReceive(String message, Channel channel, @Header(AmqpHeaders.DELIVERY_TAG) long tag) throws IOException {
         try {
             // 使用redis保证消费消息的幂等性
+            // TODO 改成bitmap
             System.out.println("收到 message: " + message);
             ItemStockMessage itemStockMessage = JSON.toJavaObject(JSON.parseObject(message), ItemStockMessage.class);
 
@@ -39,7 +40,7 @@ public class ItemStockConsumer {
             String msgId=itemStockMessage.getMsgId();
 
             // 未消费过
-            if(!redisUtil.inCacheSet(CacheConstant.CONSUMED_STOCK_DECREASE_MSG,msgId)){
+            if(!redisUtil.isInCacheSet(CacheConstant.CONSUMED_STOCK_DECREASE_MSG,msgId)){
                 itemStockDtoMapper.decreaseStock(itemId, amount);
                 redisUtil.addInCacheSet(CacheConstant.CONSUMED_STOCK_DECREASE_MSG,msgId);
             }
