@@ -16,4 +16,11 @@ public interface CacheConstant {
     // 已消费库存消息set key
     String CONSUMED_STOCK_DECREASE_MSG="CONSUMED_STOCK_DECREASE_MSG";
 
+    // 秒杀活动商品库存限额
+    String PROMO_DOOR_PREFIX="PROMO_DOOR_";
+
+    // promo token
+    String PROMO_TOKEN_PREFIX="PROMO_TOKEN_";
+
+
 }

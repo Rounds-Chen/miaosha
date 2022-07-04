@@ -72,5 +72,10 @@ public class RedisUtil {
         return redisTemplate.exec();
     }
 
+    // 开启事务支持
+    public void start(){
+        redisTemplate.setEnableTransactionSupport(true);
+    }
+
 
 }

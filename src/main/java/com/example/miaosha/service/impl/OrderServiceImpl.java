@@ -56,59 +56,40 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional
     public OrderModel create(Integer userId, Integer itemId, Integer amount, Integer promoId) throws BussinessException {
-        // 1. 校验下单参数
-        // a. 用户商品信息校验
-        UserModel userModel = userService.getUserInCacheById(userId);
-        if (userModel == null) {
-            throw new BussinessException(EmBussinessError.PARAMETER_VALIDATION_ERROR, "用户不存在");
-        }
-        ItemModel itemModel = itemService.getItemInCache(itemId);
-        if (itemModel == null) {
-            throw new BussinessException(EmBussinessError.PARAMETER_VALIDATION_ERROR, "商品不存在");
-        }
+        // amout参数校验
         if (amount <= 0 || amount > 99) {
             throw new BussinessException(EmBussinessError.PARAMETER_VALIDATION_ERROR, "數量信息不存在");
         }
-        // b.活动信息校验
-        PromoModel promoModel = itemModel.getPromoModel();
-        if (promoModel == null || promoId != promoModel.getId()) {
-            throw new BussinessException(EmBussinessError.PARAMETER_VALIDATION_ERROR, "活动不存在");
-        } else if (promoModel.getStatus() != 2) {
-            throw new BussinessException(EmBussinessError.PARAMETER_VALIDATION_ERROR, "活动未开始");
-        }
 
-        // 2. 商品库存减（落单即减）
-        // a. redis缓存中减库存
+        // redis缓存中减库存
         boolean result = itemService.decreaseStockInCache(itemId, amount);
         if (!result) {
             // redis缓存恢复
             itemService.decreaseStockInCache(itemId, -1 * amount);
             throw new BussinessException(EmBussinessError.PARAMETER_VALIDATION_ERROR, "商品庫存不足");
         }
-//        // b. 放入异步消息队列
-//        if (!itemStockProducer.syncSend(itemId, amount)) {
-//            itemService.decreaseStockInCache(itemId, -1 * amount);
-//        }
 
-        // 3. 订单入库
+        // 订单入库
+        ItemModel itemModel=itemService.getItemInCache(itemId);
         OrderModel orderModel = new OrderModel();
-        orderModel.setItemPrice(promoModel.getPromoPrice());
+        orderModel.setItemPrice(itemModel.getPromoModel().getPromoPrice());
         orderModel.setAmount(amount);
         orderModel.setItemId(itemId);
         orderModel.setUserId(userId);
         orderModel.setOrderPrice(BigDecimal.valueOf(amount).multiply(orderModel.getItemPrice()));
+        orderModel.setPromoPrice(orderModel.getItemPrice());
+        orderModel.setPromoId(promoId);
         // 生成訂單交易號
         orderModel.setId(generateOrderNo());
-
         orderDtoMapper.insertSelective(this.convertFromOrderModel(orderModel));
 
         // 4. 商品销量增加
         itemService.increaseSales(itemId, amount);
+
         return orderModel;
     }
 
     @Override
-    @Transactional
     public OrderModel createByTransication(Integer userId, Integer itemId, Integer amout, Integer promoId) throws BussinessException {
         // 创建订单
         OrderModel orderModel=this.create(userId,itemId,amout,promoId);

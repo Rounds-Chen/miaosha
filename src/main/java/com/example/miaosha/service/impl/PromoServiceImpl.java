@@ -4,8 +4,13 @@ import com.example.miaosha.dao.ItemStockDtoMapper;
 import com.example.miaosha.dao.PromoDtoMapper;
 import com.example.miaosha.dto.ItemStockDto;
 import com.example.miaosha.dto.PromoDto;
+import com.example.miaosha.error.BussinessException;
+import com.example.miaosha.service.ItemService;
 import com.example.miaosha.service.PromoService;
+import com.example.miaosha.service.UserService;
+import com.example.miaosha.service.model.ItemModel;
 import com.example.miaosha.service.model.PromoModel;
+import com.example.miaosha.service.model.UserModel;
 import com.example.miaosha.util.CacheConstant;
 import com.example.miaosha.util.RedisUtil;
 import org.joda.time.DateTime;
@@ -14,6 +19,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import java.util.Objects;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -27,6 +34,12 @@ public class PromoServiceImpl implements PromoService {
 
     @Autowired
     ItemStockDtoMapper itemStockDtoMapper;
+
+    @Autowired
+    UserService userService;
+
+    @Autowired
+    ItemService itemService;
 
     @Override
     public PromoModel getPromoByItemId(Integer itemId) {
@@ -59,8 +72,47 @@ public class PromoServiceImpl implements PromoService {
 
         ItemStockDto itemStockDto=itemStockDtoMapper.selectByItemId(promoModel.getItemId());
         String stockKey= CacheConstant.ITEM_STOCK_CACHE_PREFIX+itemStockDto.getItemId();
+        String doorkey=CacheConstant.PROMO_DOOR_PREFIX+"promoid_"+promoId+"_itemId_"+itemStockDto.getItemId();
 
-        redisUtil.setCacheObjectExpire(stockKey, itemStockDto.getStock(),10, TimeUnit.MINUTES);
+        redisUtil.setCacheObject(stockKey, itemStockDto.getStock());
+        redisUtil.setCacheObject(doorkey,itemStockDto.getStock()*3);
+    }
+
+    @Override
+    public String generatePromoToken(Integer promoId, Integer itemId, Integer userId) throws BussinessException {
+        // 检查库存是否足够
+        String stockKey= CacheConstant.ITEM_STOCK_CACHE_PREFIX+itemId;
+        if((Integer)redisUtil.getCacheObject(stockKey)<=0){
+           return null;
+        }
+
+        // a. 用户商品信息校验
+        UserModel userModel = userService.getUserInCacheById(userId);
+        if (userModel == null) {
+            return null;
+        }
+        ItemModel itemModel = itemService.getItemInCache(itemId);
+        if (itemModel == null) {
+            return  null;
+        }
+        // b.活动信息校验
+        PromoModel promoModel = itemModel.getPromoModel();
+        if (promoModel == null || !Objects.equals(promoId, promoModel.getId())) {
+            return null;
+        } else if (promoModel.getStatus() != 2) {
+            return null;
+        }
+
+        // 令牌不足直接返回
+        String doorKey=CacheConstant.PROMO_DOOR_PREFIX+"promoId_"+promoId+"_itemId_"+itemId;
+        if(redisUtil.incrementCacheObject(doorKey,-1)<0){
+            return null;
+        }
+        String promoToken= UUID.randomUUID().toString().replace("-","");
+        String tokenPrefix=CacheConstant.PROMO_TOKEN_PREFIX+"promoId_"+promoId+"_userId_"+userId+"_itemId_"+itemId;
+        redisUtil.setCacheObjectExpire(tokenPrefix,promoToken,5,TimeUnit.MINUTES);
+
+        return promoToken;
     }
 
     private PromoModel convertFromDataObject(PromoDto promoDO) {

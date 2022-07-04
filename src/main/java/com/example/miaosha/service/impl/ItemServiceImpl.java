@@ -14,6 +14,7 @@ import com.example.miaosha.util.CacheConstant;
 import com.example.miaosha.util.RedisUtil;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,12 +40,15 @@ public class ItemServiceImpl implements ItemService {
     @Resource
     RedisUtil redisUtil;
 
+    @Resource
+    RedisTemplate redisTemplate;
+
     @Override
     public ItemModel createItem(ItemModel item) throws BussinessException {
-       ItemDto itemDto=this.convertItemDtoFromItemModel(item);
+        ItemDto itemDto = this.convertItemDtoFromItemModel(item);
         itemDtoMapper.insertSelective(itemDto);
 
-        ItemStockDto itemStockDto=this.convertItemStockDtoFromItemModel(item);
+        ItemStockDto itemStockDto = this.convertItemStockDtoFromItemModel(item);
         itemStockDtoMapper.insertSelective(itemStockDto);
 
         return item;
@@ -52,11 +56,11 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public List<ItemModel> itemList() {
-        List<ItemDto> list=itemDtoMapper.itemList();
+        List<ItemDto> list = itemDtoMapper.itemList();
 
-        List<ItemModel> itemModelList=list.stream().map(itemDto -> {
-            ItemStockDto itemStockDto=itemStockDtoMapper.selectByItemId(itemDto.getId());
-            ItemModel itemModel=this.convertModelFromDataObject(itemDto,itemStockDto);
+        List<ItemModel> itemModelList = list.stream().map(itemDto -> {
+            ItemStockDto itemStockDto = itemStockDtoMapper.selectByItemId(itemDto.getId());
+            ItemModel itemModel = this.convertModelFromDataObject(itemDto, itemStockDto);
 
             return itemModel;
         }).collect(Collectors.toList());
@@ -66,30 +70,30 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public ItemModel getItem(Integer id) throws BussinessException {
-        ItemDto itemDto=itemDtoMapper.selectByPrimaryKey(id);
-        if(itemDto==null){
-            throw new BussinessException(EmBussinessError.PARAMETER_VALIDATION_ERROR,"商品不存在");
+        ItemDto itemDto = itemDtoMapper.selectByPrimaryKey(id);
+        if (itemDto == null) {
+            throw new BussinessException(EmBussinessError.PARAMETER_VALIDATION_ERROR, "商品不存在");
         }
 
-        ItemStockDto itemStockDto=itemStockDtoMapper.selectByItemId(itemDto.getId());
-        if(itemStockDto==null){
-            throw new BussinessException(EmBussinessError.PARAMETER_VALIDATION_ERROR,"商品不存在");
+        ItemStockDto itemStockDto = itemStockDtoMapper.selectByItemId(itemDto.getId());
+        if (itemStockDto == null) {
+            throw new BussinessException(EmBussinessError.PARAMETER_VALIDATION_ERROR, "商品不存在");
 
         }
-        ItemModel itemModel=this.convertModelFromDataObject(itemDto,itemStockDto);
+        ItemModel itemModel = this.convertModelFromDataObject(itemDto, itemStockDto);
         PromoModel promoModel = promoService.getPromoByItemId(itemModel.getId());
-        if(promoModel!=null&&promoModel.getStatus()!=3) itemModel.setPromoModel(promoModel);
+        if (promoModel != null && promoModel.getStatus() != 3) itemModel.setPromoModel(promoModel);
 
         return itemModel;
     }
 
     @Override
     public ItemModel getItemInCache(Integer id) throws BussinessException {
-        String itemKey= CacheConstant.ORDER_ITEM_CACHE_PREFIX+id;
-        ItemModel itemModel=redisUtil.getCacheObject(itemKey);
-        if(itemModel==null){
-            itemModel=this.getItem(id);
-            redisUtil.setCacheObjectExpire(itemKey,itemModel,10, TimeUnit.MINUTES);
+        String itemKey = CacheConstant.ORDER_ITEM_CACHE_PREFIX + id;
+        ItemModel itemModel = redisUtil.getCacheObject(itemKey);
+        if (itemModel == null) {
+            itemModel = this.getItem(id);
+            redisUtil.setCacheObjectExpire(itemKey, itemModel, 10, TimeUnit.MINUTES);
         }
         return itemModel;
     }
@@ -97,35 +101,42 @@ public class ItemServiceImpl implements ItemService {
     @Override
     @Transactional
     public boolean decreaseStock(Integer itemId, Integer amount) {
-        int stock=itemStockDtoMapper.decreaseStock(itemId,amount);
-        return stock>=0;
+        int stock = itemStockDtoMapper.decreaseStock(itemId, amount);
+        return stock >= 0;
     }
 
     @Override
     public boolean decreaseStockInCache(Integer itemId, Integer amout) {
-        String stockKey=CacheConstant.ITEM_STOCK_CACHE_PREFIX+itemId;
-        while(true){
-            redisUtil.watchKey(stockKey);
-            try{
-                int stock=Integer.parseInt(redisUtil.getCacheObject(stockKey));
-                if(stock<amout){
-                    return false;
-                }
-
-                redisUtil.startMulti();
-                redisUtil.setCacheObject(stockKey,stock-amout);
-                List<Object> results = redisUtil.execMulti();
-
-                if(results==null||results.size()==0){
-                    waitForLock();
-                }else{
-                    return true;
-                }
-            }finally {
-                redisUtil.unwatchKey();
-            }
-        }
-
+        // 无法使用redis乐观锁 因为createOrderByTransication需要被@Transication修饰 和redis 事务不一致 不支持操作
+//        String stockKey=CacheConstant.ITEM_STOCK_CACHE_PREFIX+itemId;
+//        while(true){
+//            redisUtil.watchKey(stockKey);
+//            try{
+//                redisUtil.startMulti();
+//
+//                int stock=(Integer) redisUtil.getCacheObject(stockKey);
+//                if(stock<amout){
+//                    return false;
+//                }
+//
+//                redisUtil.setCacheObject(stockKey,stock-amout);
+//                List<Object> results = redisUtil.execMulti();
+//
+//                if(results==null||results.size()==0){
+//                    waitForLock();
+//                }else{
+//                    return true;
+//                }
+//            }catch (Exception e){
+//                System.out.println(e);
+//            }
+//            finally {
+//                redisUtil.unwatchKey();
+//            }
+//        }
+        String stockKey = CacheConstant.ITEM_STOCK_CACHE_PREFIX + itemId;
+        long res = redisUtil.incrementCacheObject(stockKey, -1 * amout);
+        return res >= 0;
     }
 
     private void waitForLock() {
@@ -139,7 +150,7 @@ public class ItemServiceImpl implements ItemService {
     @Override
     @Transactional
     public void increaseSales(Integer itemId, Integer amount) {
-        itemDtoMapper.increaseSales(itemId,amount);
+        itemDtoMapper.increaseSales(itemId, amount);
     }
 
     private ItemDto convertItemDtoFromItemModel(ItemModel itemModel) {

@@ -21,7 +21,7 @@ public interface ItemService {
     // 商品減庫存
     boolean decreaseStock(Integer itemId,Integer amount);
 
-    // redis乐观锁实现商品减缓存库存
+    // redis悲观锁实现商品减缓存库存
     boolean decreaseStockInCache(Integer itemId,Integer amout);
 
     // 商品銷量增加

@@ -21,7 +21,7 @@ public class ProducerScheduleTask{
 
     // 设置超时5min未更新的消息重新发送
     // 每两小时执行一次
-    @Scheduled(cron="0 */2 * * *")
+    @Scheduled(cron="0 */2 * * * ?")
     public void retrySendMsg(){
         List<OrderLogDto> res=orderLogDtoMapper.selectDumpedLog(new Date(),5);
         for(OrderLogDto orderLogDto : res){
