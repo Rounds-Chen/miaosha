@@ -22,5 +22,8 @@ public interface CacheConstant {
     // promo token
     String PROMO_TOKEN_PREFIX="PROMO_TOKEN_";
 
+    // 验证图片码缓存前缀
+    String VERIFY_CODE_PREFIX="VERIFY_CODE_";
+
 
 }
