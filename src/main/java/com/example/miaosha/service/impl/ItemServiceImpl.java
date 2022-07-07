@@ -61,6 +61,8 @@ public class ItemServiceImpl implements ItemService {
         List<ItemModel> itemModelList = list.stream().map(itemDto -> {
             ItemStockDto itemStockDto = itemStockDtoMapper.selectByItemId(itemDto.getId());
             ItemModel itemModel = this.convertModelFromDataObject(itemDto, itemStockDto);
+            PromoModel promoModel = promoService.getPromoByItemId(itemModel.getId());
+            if (promoModel != null && promoModel.getStatus() != 3) itemModel.setPromoModel(promoModel);
 
             return itemModel;
         }).collect(Collectors.toList());

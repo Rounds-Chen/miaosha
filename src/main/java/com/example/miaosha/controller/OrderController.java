@@ -9,22 +9,24 @@ import com.example.miaosha.service.model.OrderModel;
 import com.example.miaosha.util.CacheConstant;
 import com.example.miaosha.util.RedisUtil;
 import com.google.code.kaptcha.impl.DefaultKaptcha;
+import com.google.common.util.concurrent.RateLimiter;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import javax.imageio.ImageIO;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.awt.image.BufferedImage;
-import java.awt.image.RenderedImage;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
+
+@CrossOrigin
 @Controller
 @RequestMapping("/order")
 public class OrderController {
@@ -42,6 +44,13 @@ public class OrderController {
 
     @Autowired
     DefaultKaptcha defaultKaptcha;
+
+    private RateLimiter rateLimiter;
+
+    @PostConstruct
+    public void init(){
+        rateLimiter=RateLimiter.create(300);
+    }
 
     @PostMapping("/generateToken")
     @ResponseBody
@@ -75,6 +84,12 @@ public class OrderController {
         String promoInCache=redisUtil.getCacheObject(tokenKey);
         if(promoInCache==null|| !StringUtils.equals(promoInCache,promoToken)){
             throw new BussinessException(EmBussinessError.PARAMETER_VALIDATION_ERROR,"令牌校验失败");
+        }
+
+        try{
+            rateLimiter.tryAcquire(1);
+        }catch (Exception e){
+            throw new BussinessException(EmBussinessError.RATELIMITER_ERROR);
         }
 
         OrderModel orderModel=orderService.createByTransication(userId,itemId,amount,promoId);

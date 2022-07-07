@@ -72,7 +72,7 @@ public class PromoServiceImpl implements PromoService {
 
         ItemStockDto itemStockDto=itemStockDtoMapper.selectByItemId(promoModel.getItemId());
         String stockKey= CacheConstant.ITEM_STOCK_CACHE_PREFIX+itemStockDto.getItemId();
-        String doorkey=CacheConstant.PROMO_DOOR_PREFIX+"promoid_"+promoId+"_itemId_"+itemStockDto.getItemId();
+        String doorkey=CacheConstant.PROMO_DOOR_PREFIX+"promoId_"+promoId+"_itemId_"+itemStockDto.getItemId();
 
         redisUtil.setCacheObject(stockKey, itemStockDto.getStock());
         redisUtil.setCacheObject(doorkey,itemStockDto.getStock()*3);

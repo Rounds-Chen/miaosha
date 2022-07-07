@@ -2,9 +2,7 @@ package com.example.miaosha.util;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
 import java.util.concurrent.TimeUnit;
@@ -30,6 +28,10 @@ public class CommonCacheUtil {
 
     public Object getFromCommonCache(String key) {
         return commonCache.getIfPresent(key);
+    }
+
+    public void clear(){
+        commonCache.invalidateAll();
     }
 
 }

@@ -4,6 +4,7 @@ import com.example.miaosha.error.BussinessException;
 import com.example.miaosha.error.EmBussinessError;
 import com.example.miaosha.response.CommonReturnType;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -12,6 +13,8 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.Map;
 
+
+@CrossOrigin
 public class BaseController {
     //定义exceptionHandler解决未被controller层吸收的exception
     @ExceptionHandler(Exception.class)

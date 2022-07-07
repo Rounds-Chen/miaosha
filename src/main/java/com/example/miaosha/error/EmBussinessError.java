@@ -12,6 +12,7 @@ public enum EmBussinessError implements CommonError{
 
     //30000开头为交易信息错误定义
     STOCK_NOT_ENOUGH(30001, "库存不足"),
+    RATELIMITER_ERROR(30002,"当前活动过于火爆请稍后再试"),
     ;
 
     private EmBussinessError(int errCode, String errMsg) {

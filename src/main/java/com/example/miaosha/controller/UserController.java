@@ -22,6 +22,8 @@ import java.util.Random;
 
 import java.util.Base64;
 
+
+@CrossOrigin
 @Controller
 @RequestMapping("/user")
 public class UserController extends BaseController {

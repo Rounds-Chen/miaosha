@@ -25,6 +25,7 @@ public class RedisUtil {
     // 设置key的缓存 无过期时间
     public <T> ValueOperations<String, T> setCacheObject(String key, T value) {
         ValueOperations<String, T> operation = redisTemplate.opsForValue();
+        operation.set(key,value);
         return operation;
     }
 

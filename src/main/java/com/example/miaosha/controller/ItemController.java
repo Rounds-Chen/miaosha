@@ -21,6 +21,8 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+
+@CrossOrigin
 @Controller
 @RequestMapping("/item")
 public class ItemController extends BaseController{
@@ -66,7 +68,7 @@ public class ItemController extends BaseController{
              return itemVO;
         }).collect(Collectors.toList());
 
-        return  CommonReturnType.create(list);
+        return  CommonReturnType.create(itemModelList);
     }
 
     @GetMapping("/get")
@@ -85,8 +87,7 @@ public class ItemController extends BaseController{
             cacheUtil.setCommonCache(itemKey,itemModel);
         }
 
-        ItemVO itemVO=this.convertVOFromModel(itemModel);
-
+        ItemVO itemVO = this.convertVOFromModel(itemModel);
         return CommonReturnType.create(itemVO);
     }
 
