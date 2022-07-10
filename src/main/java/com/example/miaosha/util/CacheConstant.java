@@ -13,8 +13,14 @@ public interface CacheConstant {
     // 商品库存信息缓存前缀
     String ITEM_STOCK_CACHE_PREFIX="ITEM_STOCK_";
 
+    // 商品销量信息缓存前缀
+    String ITEM_SALES_CACHE_PREFIX="ITEM_SALES_";
+
     // 已消费库存消息set key
     String CONSUMED_STOCK_DECREASE_MSG="CONSUMED_STOCK_DECREASE_MSG";
+
+    // 已消费销量消息set key
+    String CONSUMED_SALES_INCREASE_MSG="CONSUMED_SALES_INCREASE_MSG";
 
     // 秒杀活动商品库存限额
     String PROMO_DOOR_PREFIX="PROMO_DOOR_";
@@ -24,6 +30,9 @@ public interface CacheConstant {
 
     // 验证图片码缓存前缀
     String VERIFY_CODE_PREFIX="VERIFY_CODE_";
+
+    // order_info自增序列当前值
+    String ORDER_INFO_CUR_VALUE="ORDER_INFO_CUR_VALUE";
 
 
 }

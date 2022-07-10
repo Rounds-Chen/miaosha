@@ -2,6 +2,7 @@ package com.example.miaosha.service.impl;
 
 import com.example.miaosha.dao.ItemStockDtoMapper;
 import com.example.miaosha.dao.PromoDtoMapper;
+import com.example.miaosha.dao.SequenceDtoMapper;
 import com.example.miaosha.dto.ItemStockDto;
 import com.example.miaosha.dto.PromoDto;
 import com.example.miaosha.error.BussinessException;
@@ -41,6 +42,9 @@ public class PromoServiceImpl implements PromoService {
     @Autowired
     ItemService itemService;
 
+    @Autowired
+    SequenceDtoMapper sequenceDtoMapper;
+
     @Override
     public PromoModel getPromoByItemId(Integer itemId) {
         PromoDto promoDto = promoDtoMapper.selectByItemId(itemId);
@@ -66,16 +70,19 @@ public class PromoServiceImpl implements PromoService {
     }
 
     @Override
-    public void publishPromoById(Integer promoId) {
+    public void publishPromoById(Integer promoId) throws BussinessException {
         PromoModel promoModel=this.getPromoById(promoId);
         if(promoModel==null) return ;
 
+        ItemModel itemModel=itemService.getItemInCache(promoModel.getItemId());
         ItemStockDto itemStockDto=itemStockDtoMapper.selectByItemId(promoModel.getItemId());
         String stockKey= CacheConstant.ITEM_STOCK_CACHE_PREFIX+itemStockDto.getItemId();
         String doorkey=CacheConstant.PROMO_DOOR_PREFIX+"promoId_"+promoId+"_itemId_"+itemStockDto.getItemId();
 
         redisUtil.setCacheObject(stockKey, itemStockDto.getStock());
         redisUtil.setCacheObject(doorkey,itemStockDto.getStock()*3);
+        redisUtil.setCacheObject(CacheConstant.ORDER_INFO_CUR_VALUE,sequenceDtoMapper.selectByPrimaryKey("order_info").getCurrentValue());
+        redisUtil.setCacheObject(CacheConstant.ITEM_SALES_CACHE_PREFIX+promoModel.getItemId(),itemModel.getSales());
     }
 
     @Override

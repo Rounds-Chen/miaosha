@@ -15,7 +15,7 @@ import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 
 @Component
-public class ItemStockProducer {
+public class ItemProducer {
     @Resource
     RabbitTemplate rabbitTemplate;
 
@@ -32,8 +32,10 @@ public class ItemStockProducer {
                 //ack为true,代表MQ已经准确收到消息
                 if(ack){
                     OrderLogDto orderLogDto=orderLogDtoMapper.selectByPrimaryKey(correlationData.getId());
-                    orderLogDto.setStatus(1);// 标志消息发送成功
-                    orderLogDtoMapper.updateByPrimaryKeySelective(orderLogDto);
+                    if(orderLogDto!=null) {
+                        orderLogDto.setStatus(1);// 标志消息发送成功
+                        orderLogDtoMapper.updateByPrimaryKeySelective(orderLogDto);
+                    }
                 }
             }
         });
@@ -46,7 +48,7 @@ public class ItemStockProducer {
         message.setMsgId(logId);
         try {
             rabbitTemplate.convertAndSend(MqConstant.ORDER_EXCHANGE, MqConstant.ITEM_STOCK_ROUTE_KEY, JSON.toJSONString(message),new CorrelationData(logId));
-            System.out.println("发送：item:"+itemId+" stockDec:"+amount);
+//            System.out.println("发送：item:"+itemId+" stockDec:"+amount);
         }catch (Exception e){
             System.out.println(e);
             return false;

@@ -93,7 +93,7 @@ public class ItemController extends BaseController{
 
     @PostMapping("/publishPromo")
     @ResponseBody
-    public CommonReturnType publishPromo(@RequestParam("promoId") Integer id){
+    public CommonReturnType publishPromo(@RequestParam("promoId") Integer id) throws BussinessException {
         promoService.publishPromoById(id);
         return CommonReturnType.create(null);
     }

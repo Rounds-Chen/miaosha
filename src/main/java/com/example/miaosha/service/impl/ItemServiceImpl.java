@@ -141,18 +141,13 @@ public class ItemServiceImpl implements ItemService {
         return res >= 0;
     }
 
-    private void waitForLock() {
-        try {
-            Thread.sleep(new Random().nextInt(10) + 1);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-    }
 
     @Override
     @Transactional
-    public void increaseSales(Integer itemId, Integer amount) {
-        itemDtoMapper.increaseSales(itemId, amount);
+    public void increaseSalesInCache(Integer itemId, Integer amount) {
+//        itemDtoMapper.increaseSales(itemId, amount);
+        redisUtil.incrementCacheObject(CacheConstant.ITEM_SALES_CACHE_PREFIX+itemId,amount);
+
     }
 
     private ItemDto convertItemDtoFromItemModel(ItemModel itemModel) {

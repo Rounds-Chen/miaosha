@@ -25,7 +25,7 @@ public interface ItemService {
     boolean decreaseStockInCache(Integer itemId,Integer amout);
 
     // 商品銷量增加
-    void increaseSales(Integer itemId,Integer amount);
+    void increaseSalesInCache(Integer itemId, Integer amount);
 
 
 }

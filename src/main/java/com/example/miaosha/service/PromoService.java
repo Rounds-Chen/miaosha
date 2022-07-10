@@ -10,7 +10,7 @@ public interface PromoService {
 
     PromoModel getPromoById(Integer promoId);
 
-    void publishPromoById(Integer promoId);
+    void publishPromoById(Integer promoId) throws BussinessException;
 
     String generatePromoToken(Integer promoId,Integer itemId,Integer userId) throws BussinessException;
 }

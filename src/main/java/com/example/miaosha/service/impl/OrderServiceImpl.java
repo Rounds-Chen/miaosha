@@ -5,16 +5,17 @@ import com.example.miaosha.dao.OrderLogDtoMapper;
 import com.example.miaosha.dao.SequenceDtoMapper;
 import com.example.miaosha.dto.OrderDto;
 import com.example.miaosha.dto.OrderLogDto;
-import com.example.miaosha.dto.SequenceDto;
 import com.example.miaosha.error.BussinessException;
 import com.example.miaosha.error.EmBussinessError;
-import com.example.miaosha.mq.producer.ItemStockProducer;
+import com.example.miaosha.mq.producer.ItemProducer;
 import com.example.miaosha.service.ItemService;
 import com.example.miaosha.service.OrderService;
 import com.example.miaosha.service.PromoService;
 import com.example.miaosha.service.UserService;
 import com.example.miaosha.service.model.ItemModel;
 import com.example.miaosha.service.model.OrderModel;
+import com.example.miaosha.util.CacheConstant;
+import com.example.miaosha.util.RedisUtil;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -48,7 +49,10 @@ public class OrderServiceImpl implements OrderService {
     PromoService promoService;
 
     @Resource
-    ItemStockProducer itemStockProducer;
+    ItemProducer itemStockProducer;
+
+    @Resource
+    RedisUtil redisUtil;
 
     @Autowired
     OrderLogDtoMapper orderLogDtoMapper;
@@ -105,10 +109,12 @@ public class OrderServiceImpl implements OrderService {
         orderModel.setPromoId(promoId);
         // 生成訂單交易號
         orderModel.setId(generateOrderNo());
-        orderDtoMapper.insertSelective(this.convertFromOrderModel(orderModel));
+        OrderDto orderDto=this.convertFromOrderModel(orderModel);
+        orderDtoMapper.insertSelective(orderDto);
+
 
         // 4. 商品销量增加
-        itemService.increaseSales(itemId, amount);
+        itemService.increaseSalesInCache(itemId, amount);
 
         return orderModel;
     }
@@ -119,24 +125,30 @@ public class OrderServiceImpl implements OrderService {
         // 创建订单
         OrderModel orderModel = this.create(userId, itemId, amout, promoId);
 
-        //拥塞窗口为20的等待队列，用来队列化泄洪
-        Future future=executor.submit(new Runnable() {
-            @Override
-            public void run() {
-                // 记录本地创建订单记录
-                String logId = saveLocalOrderMsg(itemId, amout);
-
-                // 发送消息到mq
-                if (!itemStockProducer.syncSend(logId, itemId, amout)) {
-                    itemService.decreaseStockInCache(itemId, -1 * amout);
-                }
-            }
-        });
-        try {
-            future.get();
-        }catch (Exception e){
-            throw new BussinessException(EmBussinessError.UNKNOWN_ERROR,"线程池执行出错");
-        }
+//        //拥塞窗口为20的等待队列，用来队列化泄洪
+//        Future future=executor.submit(new Runnable() {
+//            @Override
+//            public void run() {
+//                // 记录本地创建订单记录
+//                String logId = saveLocalOrderMsg(itemId, amout);
+//
+//                // 发送消息到mq
+//                if (!itemStockProducer.syncSend(logId, itemId, amout)) {
+//                    itemService.decreaseStockInCache(itemId, -1 * amout);
+//                }
+//            }
+//        });
+//        try {
+//            future.get();
+//        }catch (Exception e){
+//            throw new BussinessException(EmBussinessError.UNKNOWN_ERROR,"线程池执行出错");
+//        }
+//        String logId = saveLocalOrderMsg(itemId, amout);
+//
+//        // 发送消息到mq
+//        if (!itemStockProducer.syncSend(logId, itemId, amout)) {
+//            itemService.decreaseStockInCache(itemId, -1 * amout);
+//        }
 
         return orderModel;
     }
@@ -164,10 +176,12 @@ public class OrderServiceImpl implements OrderService {
         sb.append(nowTime);
 
         // 中間6位為自增序列
-        SequenceDto sequenceDto = sequenceDtoMapper.selectByPrimaryKey("order_info");
-        String curVal = String.valueOf(sequenceDto.getCurrentValue());
-        sequenceDto.setCurrentValue(sequenceDto.getCurrentValue() + sequenceDto.getStep());
-        sequenceDtoMapper.updateByPrimaryKeySelective(sequenceDto);
+//        SequenceDto sequenceDto = sequenceDtoMapper.selectByPrimaryKey("order_info");
+//        String curVal = String.valueOf(sequenceDto.getCurrentValue());
+//        sequenceDto.setCurrentValue(sequenceDto.getCurrentValue() + sequenceDto.getStep());
+//        sequenceDtoMapper.updateByPrimaryKeySelective(sequenceDto);
+        // redis锁获取
+        String  curVal=String.valueOf(redisUtil.incrementCacheObject(CacheConstant.ORDER_INFO_CUR_VALUE,1)-1);
 
         for (int i = 0; i < Math.max(0, 6 - curVal.length()); i++)
             sb.append("0");

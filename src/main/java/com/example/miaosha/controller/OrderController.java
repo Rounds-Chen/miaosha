@@ -76,21 +76,21 @@ public class OrderController {
     @ResponseBody
     public CommonReturnType createOrder(@RequestParam("itemId") Integer itemId,
                                         @RequestParam("amount") Integer amount,
-                                        @RequestParam("promoId") Integer promoId,
-                                        @RequestParam("promoToken") String promoToken) throws BussinessException, ExecutionException, InterruptedException {
+                                        @RequestParam("promoId") Integer promoId
+                                        ) throws BussinessException, ExecutionException, InterruptedException {
         Integer userId= Integer.parseInt((String)(httpServletRequest.getAttribute("userId")));
 
-        String tokenKey=CacheConstant.PROMO_TOKEN_PREFIX+"promoId_"+promoId+"_userId_"+userId+"_itemId_"+itemId;
-        String promoInCache=redisUtil.getCacheObject(tokenKey);
-        if(promoInCache==null|| !StringUtils.equals(promoInCache,promoToken)){
-            throw new BussinessException(EmBussinessError.PARAMETER_VALIDATION_ERROR,"令牌校验失败");
-        }
+//        String tokenKey=CacheConstant.PROMO_TOKEN_PREFIX+"promoId_"+promoId+"_userId_"+userId+"_itemId_"+itemId;
+//        String promoInCache=redisUtil.getCacheObject(tokenKey);
+//        if(promoInCache==null|| !StringUtils.equals(promoInCache,promoToken)){
+//            throw new BussinessException(EmBussinessError.PARAMETER_VALIDATION_ERROR,"令牌校验失败");
+//        }
 
-        try{
-            rateLimiter.tryAcquire(1);
-        }catch (Exception e){
-            throw new BussinessException(EmBussinessError.RATELIMITER_ERROR);
-        }
+//        try{
+//            rateLimiter.tryAcquire(1);
+//        }catch (Exception e){
+//            throw new BussinessException(EmBussinessError.RATELIMITER_ERROR);
+//        }
 
         OrderModel orderModel=orderService.createByTransication(userId,itemId,amount,promoId);
         return CommonReturnType.create(orderModel);
