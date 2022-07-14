@@ -125,30 +125,30 @@ public class OrderServiceImpl implements OrderService {
         // 创建订单
         OrderModel orderModel = this.create(userId, itemId, amout, promoId);
 
-//        //拥塞窗口为20的等待队列，用来队列化泄洪
-//        Future future=executor.submit(new Runnable() {
-//            @Override
-//            public void run() {
-//                // 记录本地创建订单记录
-//                String logId = saveLocalOrderMsg(itemId, amout);
-//
-//                // 发送消息到mq
-//                if (!itemStockProducer.syncSend(logId, itemId, amout)) {
-//                    itemService.decreaseStockInCache(itemId, -1 * amout);
-//                }
-//            }
-//        });
-//        try {
-//            future.get();
-//        }catch (Exception e){
-//            throw new BussinessException(EmBussinessError.UNKNOWN_ERROR,"线程池执行出错");
-//        }
-//        String logId = saveLocalOrderMsg(itemId, amout);
-//
-//        // 发送消息到mq
-//        if (!itemStockProducer.syncSend(logId, itemId, amout)) {
-//            itemService.decreaseStockInCache(itemId, -1 * amout);
-//        }
+        //拥塞窗口为20的等待队列，用来队列化泄洪
+        Future future=executor.submit(new Runnable() {
+            @Override
+            public void run() {
+                // 记录本地创建订单记录
+                String logId = saveLocalOrderMsg(itemId, amout);
+
+                // 发送消息到mq
+                if (!itemStockProducer.syncSend(logId, itemId, amout)) {
+                    itemService.decreaseStockInCache(itemId, -1 * amout);
+                }
+            }
+        });
+        try {
+            future.get();
+        }catch (Exception e){
+            throw new BussinessException(EmBussinessError.UNKNOWN_ERROR,"线程池执行出错");
+        }
+        String logId = saveLocalOrderMsg(itemId, amout);
+
+        // 发送消息到mq
+        if (!itemStockProducer.syncSend(logId, itemId, amout)) {
+            itemService.decreaseStockInCache(itemId, -1 * amout);
+        }
 
         return orderModel;
     }

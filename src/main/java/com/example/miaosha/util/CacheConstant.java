@@ -1,6 +1,9 @@
 package com.example.miaosha.util;
 
 public interface CacheConstant {
+    // 用户注册验证码前缀
+    String TELEPHONE_OPT_CODE_PREFIX="OPT_";
+
     // 商品缓存前缀
     String ITEM_CACHE_PREFIX="ITEM_";
 

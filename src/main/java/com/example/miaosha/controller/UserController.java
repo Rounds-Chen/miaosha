@@ -8,19 +8,21 @@ import com.example.miaosha.response.CommonReturnType;
 import com.example.miaosha.service.JwtService;
 import com.example.miaosha.service.UserService;
 import com.example.miaosha.service.model.UserModel;
+import com.example.miaosha.util.CacheConstant;
+import com.example.miaosha.util.RedisUtil;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
-import javax.servlet.http.HttpServletRequest;
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Random;
 
 import java.util.Base64;
+import java.util.concurrent.TimeUnit;
 
 
 @CrossOrigin
@@ -34,8 +36,8 @@ public class UserController extends BaseController {
     @Resource
     JwtService jwtService;
 
-    @Autowired
-    HttpServletRequest httpServletRequest;
+    @Resource
+    RedisUtil redisUtil;
 
     @RequestMapping("/get")
     @ResponseBody
@@ -64,6 +66,7 @@ public class UserController extends BaseController {
 
         //将OTP验证码通过短信通道发送给用户，省略
         System.out.println("telphone=" + telephone + "&otpCode=" + otpCode);
+        redisUtil.setCacheObjectExpire(CacheConstant.TELEPHONE_OPT_CODE_PREFIX+telephone,otpCode,1, TimeUnit.MINUTES);
         return CommonReturnType.create(null);
     }
 
@@ -79,8 +82,8 @@ public class UserController extends BaseController {
                                      @RequestParam(name = "age") String age,
                                      @RequestParam(name = "password") String password) throws BussinessException, UnsupportedEncodingException, NoSuchAlgorithmException {
         // 验证手机号和otp是否一致
-        String inSessionOtpCode = (String) this.httpServletRequest.getSession().getAttribute(telphone);
-        if (!com.alibaba.druid.util.StringUtils.equals(otpCode, inSessionOtpCode)) {
+        String inCacheOtpCode = redisUtil.getCacheObject(CacheConstant.TELEPHONE_OPT_CODE_PREFIX+telphone);
+        if (!com.alibaba.druid.util.StringUtils.equals(otpCode, inCacheOtpCode)) {
             throw new BussinessException(EmBussinessError.PARAMETER_VALIDATION_ERROR, "短信验证码不符合");
         }
 
