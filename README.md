@@ -46,7 +46,7 @@
 
 ### 交易流程
 
-<img src="C:\Users\round\Downloads\Untitled.jpg" alt="Untitled"  />
+<img src="imgs/Untitled.jpg" alt="Untitled"  />
 
 ### 流程优化
 
